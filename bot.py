@@ -181,4 +181,36 @@ if __name__ == "__main__":
         
         main()
     except KeyboardInterrupt:
+
         print("\n\n⛔ Бот остановлен")
+
+
+
+# ============ ДЛЯ RAILWAY ============
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "🤖 Telegram Bot работает на Railway!"
+
+@app.route('/health')
+def health():
+    return "OK", 200
+
+@app.route('/test')
+def test():
+    send_telegram_message("🔧 Тест из Railway!")
+    return "Тест отправлен"
+
+if __name__ == "__main__":
+    import threading
+    import os
+    
+    # Запускаем бота в отдельном потоке
+    bot_thread = threading.Thread(target=main, daemon=True)
+    bot_thread.start()
+    
+    # Запускаем Flask сервер
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
