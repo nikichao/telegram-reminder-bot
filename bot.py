@@ -5,9 +5,11 @@ from datetime import datetime
 import pytz
 from flask import Flask
 import threading
+import schedule
+
+app = Flask(__name__)
 
 # ============ НАСТРОЙКИ ============
-# Для Railway лучше использовать переменные окружения
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8225982359:AAFTkgY86NgkaeMcb8SUzee-n8kws-IYMZQ")
 CHAT_ID = os.environ.get("CHAT_ID", "-1003679701875")
 TIMEZONE = "Europe/Moscow"
@@ -21,9 +23,6 @@ EVENING_HOUR = 15
 EVENING_MINUTE = 4
 # ===================================
 
-# Flask приложение ДОЛЖНО быть создано ДО функций
-app = Flask(__name__)
-
 @app.route('/')
 def home():
     return "🤖 Telegram Bot работает на Railway!"
@@ -32,18 +31,17 @@ def home():
 def health():
     return "OK", 200
 
-@app.route('/test_bot')
-def test_bot():
+@app.route('/send_test')
+def send_test():
+    """Ручная отправка тестового сообщения"""
     test()
-    return "Тестовое сообщение отправлено"
+    return "Тестовое сообщение отправлено!"
 
 def get_current_time():
-    """Получает текущее время с учетом часового пояса"""
     tz = pytz.timezone(TIMEZONE)
     return datetime.now(tz)
 
 def send_msg(text):
-    """Отправляет сообщение в Telegram"""
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     data = {
         "chat_id": CHAT_ID,
@@ -58,7 +56,6 @@ def send_msg(text):
             return True
         else:
             print(f"[{get_current_time().strftime('%H:%M:%S')}] ❌ Ошибка: {r.status_code}")
-            print(f"Ответ сервера: {r.text}")
             return False
     except Exception as e:
         print(f"[{get_current_time().strftime('%H:%M:%S')}] ❌ Ошибка: {e}")
@@ -124,64 +121,48 @@ def test():
 🌍 <b>Часовой пояс:</b> {TIMEZONE}"""
     send_msg(msg)
 
-def bot_main():
-    """Основная функция бота"""
+def setup_schedule():
+    """Настраивает расписание отправки"""
+    # Утреннее
+    schedule.every().day.at(f"{MORNING_HOUR:02d}:{MORNING_MINUTE:02d}").do(morning)
+    # Дневное
+    schedule.every().day.at(f"{DAY_HOUR:02d}:{DAY_MINUTE:02d}").do(day)
+    # Вечернее
+    schedule.every().day.at(f"{EVENING_HOUR:02d}:{EVENING_MINUTE:02d}").do(evening)
+    
+    print(f"⏰ Расписание настроено:")
+    print(f"   • {MORNING_HOUR:02d}:{MORNING_MINUTE:02d} - Утренний отчет")
+    print(f"   • {DAY_HOUR:02d}:{DAY_MINUTE:02d} - Фото/видео отчет")
+    print(f"   • {EVENING_HOUR:02d}:{EVENING_MINUTE:02d} - Вечерний отчет")
+
+def start_bot():
+    """Запускает бота"""
     print("="*50)
-    print("🤖 ЗАПУСК БОТА НАПОМИНАНИЙ")
+    print("🤖 ЗАПУСК TELEGRAM БОТА НА RAILWAY")
     print("="*50)
     
     current_time = get_current_time()
     print(f"🕐 Текущее время: {current_time.strftime('%H:%M:%S %d.%m.%Y')}")
     print(f"🌍 Часовой пояс: {TIMEZONE}")
-    print(f"⏰ Расписание напоминаний:")
-    print(f"   • {MORNING_HOUR:02d}:{MORNING_MINUTE:02d} - Утренний отчет")
-    print(f"   • {DAY_HOUR:02d}:{DAY_MINUTE:02d} - Фото/видео отчет")
-    print(f"   • {EVENING_HOUR:02d}:{EVENING_MINUTE:02d} - Вечерний отчет")
-    print("="*50)
     
-    # Проверка настроек
-    if not BOT_TOKEN or not CHAT_ID:
-        print("\n❌ ОШИБКА: Не указан BOT_TOKEN или CHAT_ID!")
+    # Проверка токена
+    if not BOT_TOKEN or BOT_TOKEN == "8225982359:AAFTkgY86NgkaeMcb8SUzee-n8kws-IYMZQ":
+        print("❌ ОШИБКА: Не настроен BOT_TOKEN!")
         return
     
     print("\n📤 Отправляю тестовое сообщение...")
     test()
     
+    # Настраиваем расписание
+    setup_schedule()
+    
     print("\n✅ Бот запущен!")
-    print(f"⏰ Следующее напоминание в {MORNING_HOUR:02d}:{MORNING_MINUTE:02d}")
-    print("\n⛔ Для остановки бота остановите сервер")
+    print("⏰ Напоминания будут отправляться автоматически")
     print("="*50)
     
-    # Главный цикл
-    last_minute = -1
+    # Запускаем планировщик
     while True:
-        now = get_current_time()
-        hour = now.hour
-        minute = now.minute
-        
-        # Утреннее
-        if hour == MORNING_HOUR and minute == MORNING_MINUTE:
-            print(f"\n[{now.strftime('%H:%M:%S')}] 📤 Отправляю утреннее напоминание...")
-            morning()
-            time.sleep(61)
-        
-        # Дневное
-        elif hour == DAY_HOUR and minute == DAY_MINUTE:
-            print(f"\n[{now.strftime('%H:%M:%S')}] 📤 Отправляю дневное напоминание...")
-            day()
-            time.sleep(61)
-        
-        # Вечернее
-        elif hour == EVENING_HOUR and minute == EVENING_MINUTE:
-            print(f"\n[{now.strftime('%H:%M:%S')}] 📤 Отправляю вечернее напоминание...")
-            evening()
-            time.sleep(61)
-        
-        # Выводим статус каждую минуту
-        if minute != last_minute:
-            print(f"[{now.strftime('%H:%M:%S')}] ⏳ Бот работает...")
-            last_minute = minute
-        
+        schedule.run_pending()
         time.sleep(1)
 
 def run_flask():
@@ -191,20 +172,10 @@ def run_flask():
     app.run(host='0.0.0.0', port=port)
 
 if __name__ == "__main__":
-    print("🚀 Запуск Telegram бота...")
-    
-    # Проверяем и устанавливаем библиотеки если нужно
-    try:
-        import pytz
-    except ImportError:
-        print("📦 Установка библиотек...")
-        import subprocess
-        subprocess.check_call(["pip", "install", "pytz", "flask"])
-        import pytz
-        from flask import Flask
+    print("🚀 Запуск приложения...")
     
     # Запускаем бота в отдельном потоке
-    bot_thread = threading.Thread(target=bot_main, daemon=True)
+    bot_thread = threading.Thread(target=start_bot, daemon=True)
     bot_thread.start()
     
     # Запускаем Flask сервер (основной поток)
