@@ -3,7 +3,6 @@ import os
 import sys
 import requests
 import time
-import schedule
 from datetime import datetime
 import pytz
 from flask import Flask
@@ -27,13 +26,8 @@ EVENING_HOUR = 19     # 19:01 вечера
 EVENING_MINUTE = 1
 # ===================================
 
-# Принудительный вывод в логи
 print("="*50, file=sys.stderr)
-print("🚀 ПРИЛОЖЕНИЕ ЗАПУСКАЕТСЯ", file=sys.stderr)
-print(f"Токен: {'✅' if BOT_TOKEN else '❌'}", file=sys.stderr)
-print(f"Chat ID: {'✅' if CHAT_ID else '❌'}", file=sys.stderr)
-print(f"Часовой пояс: {TIMEZONE}", file=sys.stderr)
-print(f"Расписание: {MORNING_HOUR:02d}:{MORNING_MINUTE:02d}, {DAY_HOUR:02d}:{DAY_MINUTE:02d}, {EVENING_HOUR:02d}:{EVENING_MINUTE:02d}", file=sys.stderr)
+print("🚀 TELEGRAM BOT STARTING", file=sys.stderr)
 print("="*50, file=sys.stderr)
 sys.stderr.flush()
 
@@ -42,233 +36,117 @@ def home():
     return f"""
     <!DOCTYPE html>
     <html>
-    <head>
-        <title>Telegram Reminder Bot</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
-            .status {{ background: #4CAF50; color: white; padding: 10px; border-radius: 5px; }}
-            .schedule {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }}
-            .btn {{ display: inline-block; background: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px; }}
-        </style>
-    </head>
+    <head><title>Telegram Bot</title></head>
     <body>
         <h1>🤖 Telegram Reminder Bot</h1>
-        
-        <div class="status">
-            ✅ Статус: <b>Работает на Railway</b>
-        </div>
-        
-        <div class="schedule">
-            <h3>⏰ Расписание напоминаний:</h3>
-            <ul>
-                <li><b>{MORNING_HOUR:02d}:{MORNING_MINUTE:02d}</b> - Утренний отчет</li>
-                <li><b>{DAY_HOUR:02d}:{DAY_MINUTE:02d}</b> - Фото/видео отчет</li>
-                <li><b>{EVENING_HOUR:02d}:{EVENING_MINUTE:02d}</b> - Вечерний отчет</li>
-            </ul>
-            
-            <p><b>Часовой пояс:</b> {TIMEZONE}</p>
-            <p><b>Текущее время:</b> {datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}</p>
-        </div>
-        
-        <p>
-            <a class="btn" href="/send_test">📤 Отправить тестовое сообщение</a>
-            <a class="btn" href="/send_morning_now">⏰ Отправить утреннее напоминание сейчас</a>
-            <a class="btn" href="/health">❤️ Проверить здоровье системы</a>
-        </p>
-        
-        <p><b>Инструкция для сотрудников:</b></p>
+        <p>✅ <b>Работает на Railway</b></p>
+        <p>⏰ <b>Расписание:</b></p>
         <ul>
-            <li>В <b>{MORNING_HOUR:02d}:{MORNING_MINUTE:02d}</b> - отправьте отчет о начале дня</li>
-            <li>В <b>{DAY_HOUR:02d}:{DAY_MINUTE:02d}</b> - отправьте фото/видео работ</li>
-            <li>В <b>{EVENING_HOUR:02d}:{EVENING_MINUTE:02d}</b> - отправьте отчет о конце дня</li>
+            <li>{MORNING_HOUR:02d}:{MORNING_MINUTE:02d} - Утренний отчет</li>
+            <li>{DAY_HOUR:02d}:{DAY_MINUTE:02d} - Фото/видео отчет</li>
+            <li>{EVENING_HOUR:02d}:{EVENING_MINUTE:02d} - Вечерний отчет</li>
         </ul>
+        <p><a href="/send_test">📤 Тест</a> | <a href="/health">❤️ Здоровье</a></p>
     </body>
     </html>
     """
 
 @app.route('/health')
 def health():
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}, 200
+    return "OK", 200
 
 @app.route('/send_test')
 def send_test():
-    """Отправить тестовое сообщение"""
-    result = send_telegram_message("🔧 Тестовое сообщение от бота на Railway!")
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head><title>Тест отправлен</title></head>
-    <body>
-        <h1>✅ Тестовое сообщение отправлено!</h1>
-        <p>Проверьте Telegram группу.</p>
-        <p><a href="/">← Назад</a></p>
-    </body>
-    </html>
-    """
+    send_telegram("🔧 Тест от бота")
+    return "✅ Тест отправлен!"
 
-@app.route('/send_morning_now')
-def send_morning_now():
-    """Отправить утреннее напоминание сейчас"""
-    send_morning()
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head><title>Напоминание отправлено</title></head>
-    <body>
-        <h1>⏰ Утреннее напоминание отправлено!</h1>
-        <p>Проверьте Telegram группу.</p>
-        <p><a href="/">← Назад</a></p>
-    </body>
-    </html>
-    """
-
-def send_telegram_message(text):
-    """Отправка сообщения в Telegram"""
+def send_telegram(text):
+    """Простая отправка сообщения"""
     if not BOT_TOKEN or not CHAT_ID:
-        print(f"❌ Ошибка: BOT_TOKEN или CHAT_ID не установлены", file=sys.stderr)
         return False
     
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": CHAT_ID,
-        "text": text,
-        "parse_mode": "HTML"
-    }
+    data = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"}
     
     try:
-        print(f"📤 Отправляю сообщение в Telegram...", file=sys.stderr)
         response = requests.post(url, data=data, timeout=10)
-        
-        if response.status_code == 200:
-            print(f"✅ Сообщение отправлено успешно!", file=sys.stderr)
-            return True
-        else:
-            print(f"❌ Ошибка {response.status_code}: {response.text[:100]}", file=sys.stderr)
-            return False
-    except Exception as e:
-        print(f"💥 Ошибка при отправке: {e}", file=sys.stderr)
+        return response.status_code == 200
+    except:
         return False
 
 def send_morning():
-    current_time = datetime.now(pytz.timezone(TIMEZONE))
-    print(f"⏰ Отправляю утреннее напоминание...", file=sys.stderr)
-    msg = f"""<b>⏰ УТРЕННЕЕ НАПОМИНАНИЕ ({MORNING_HOUR:02d}:{MORNING_MINUTE:02d})</b>
-
+    msg = f"""<b>⏰ УТРЕННЕЕ НАПОМИНАНИЕ</b>
+    
 <b>📋 НАЧАЛО РАБОЧЕГО ДНЯ</b>
-📅 <b>Дата:</b> {current_time.strftime('%d.%m.%Y')}
-
-<b>Отправьте в чат:</b>
-🏗 <b>Объект:</b> (где работаете)
-👥 <b>Сотрудники:</b> (список на объекте)
-📝 <b>План работ:</b> (что будете делать сегодня)
-
-⚠️ <b>За неоповещение - штрафные санкции</b>"""
-    return send_telegram_message(msg)
+Отправьте отчет о начале дня."""
+    send_telegram(msg)
 
 def send_day():
-    current_time = datetime.now(pytz.timezone(TIMEZONE))
-    print(f"📸 Отправляю дневное напоминание...", file=sys.stderr)
-    msg = f"""<b>📸 ДНЕВНОЕ НАПОМИНАНИЕ ({DAY_HOUR:02d}:{DAY_MINUTE:02d})</b>
-
-<b>🎥 ФОТО/ВИДЕОФИКСАЦИЯ ВЫПОЛНЕННЫХ РАБОТ</b>
-📅 <b>Дата:</b> {current_time.strftime('%d.%m.%Y')}
-
-<b>Отправляйте в чат:</b>
-• Фото выполненных работ
-• Видео процесса работы
-• С подписью что сделано
-
-<b>Пример подписи:</b>
-«Смонтирована электропроводка в комнате 3»
-«Установлено 5 розеток в коридоре»
-
-⚠️ <b>Фиксируйте каждую крупную выполненную работу!</b>"""
-    return send_telegram_message(msg)
+    msg = f"""<b>📸 ДНЕВНОЕ НАПОМИНАНИЕ</b>
+    
+<b>🎥 ФОТО/ВИДЕОФИКСАЦИЯ</b>
+Отправьте фото/видео работ."""
+    send_telegram(msg)
 
 def send_evening():
-    current_time = datetime.now(pytz.timezone(TIMEZONE))
-    print(f"🌙 Отправляю вечернее напоминание...", file=sys.stderr)
-    msg = f"""<b>🌙 ВЕЧЕРНЕЕ НАПОМИНАНИЕ ({EVENING_HOUR:02d}:{EVENING_MINUTE:02d})</b>
-
+    msg = f"""<b>🌙 ВЕЧЕРНЕЕ НАПОМИНАНИЕ</b>
+    
 <b>✅ КОНЕЦ РАБОЧЕГО ДНЯ</b>
-📅 <b>Дата:</b> {current_time.strftime('%d.%m.%Y')}
+Отправьте отчет о конце дня."""
+    send_telegram(msg)
 
-<b>Отправьте невыполненные работы:</b>
-
-<b>📋 Пример отчета:</b>
-«Не выполнено:
-1. Прокладка кабеля в комнате 4 (не завезли материалы)
-2. Установка 2-х выключателей (не было в наличии)»
-
-<b>Или:</b>
-«✅ Все работы выполнены по плану»
-
-⚠️ <b>Отчет должен быть сдан до {EVENING_HOUR:02d}:{EVENING_MINUTE+30:02d}!</b>"""
-    return send_telegram_message(msg)
-
-def send_test_message():
-    current_time = datetime.now(pytz.timezone(TIMEZONE))
-    print(f"🔧 Отправляю тестовое сообщение...", file=sys.stderr)
-    msg = f"""<b>🤖 БОТ ЗАПУЩЕН НА RAILWAY!</b>
-
-✅ <b>Система работает исправно</b>
-
-📅 <b>Дата:</b> {current_time.strftime('%d.%m.%Y')}
-⏰ <b>Время:</b> {current_time.strftime('%H:%M:%S')}
-🌍 <b>Часовой пояс:</b> {TIMEZONE}
-
-⚡ <b>Расписание напоминаний:</b>
-• {MORNING_HOUR:02d}:{MORNING_MINUTE:02d} - Утренний отчет
-• {DAY_HOUR:02d}:{DAY_MINUTE:02d} - Фото/видео отчет
-• {EVENING_HOUR:02d}:{EVENING_MINUTE:02d} - Вечерний отчет
-
-💬 <b>Это тестовое сообщение для проверки связи</b>"""
-    return send_telegram_message(msg)
-
-def start_bot():
-    """Запуск бота в фоновом режиме"""
-    print("🤖 ЗАПУСКАЮ ТЕЛЕГРАМ БОТА...", file=sys.stderr)
-    sys.stderr.flush()
+def bot_worker():
+    """Фоновый процесс с проверкой времени"""
+    time.sleep(3)
+    print("🤖 Бот запущен", file=sys.stderr)
     
-    # Проверка конфигурации
-    if not BOT_TOKEN or not CHAT_ID:
-        print("❌ ОШИБКА: Не настроены BOT_TOKEN или CHAT_ID!", file=sys.stderr)
-        return
+    # Тестовое сообщение
+    send_telegram("🤖 Бот запущен!")
     
-    # Отправка тестового сообщения
-    time.sleep(3)  # Ждем запуска Flask
-    print("📤 Отправляю тестовое сообщение при запуске...", file=sys.stderr)
-    send_test_message()
+    print(f"⏰ Ожидание времени: {MORNING_HOUR:02d}:{MORNING_MINUTE:02d}, {DAY_HOUR:02d}:{DAY_MINUTE:02d}, {EVENING_HOUR:02d}:{EVENING_MINUTE:02d}", file=sys.stderr)
     
-    # Настройка расписания
-    print(f"⏰ Настраиваю расписание...", file=sys.stderr)
-    schedule.every().day.at(f"{MORNING_HOUR:02d}:{MORNING_MINUTE:02d}").do(send_morning)
-    schedule.every().day.at(f"{DAY_HOUR:02d}:{DAY_MINUTE:02d}").do(send_day)
-    schedule.every().day.at(f"{EVENING_HOUR:02d}:{EVENING_MINUTE:02d}").do(send_evening)
+    last_check = {}
     
-    print(f"✅ Расписание настроено:", file=sys.stderr)
-    print(f"   • {MORNING_HOUR:02d}:{MORNING_MINUTE:02d} - Утренний отчет", file=sys.stderr)
-    print(f"   • {DAY_HOUR:02d}:{DAY_MINUTE:02d} - Фото/видео отчет", file=sys.stderr)
-    print(f"   • {EVENING_HOUR:02d}:{EVENING_MINUTE:02d} - Вечерний отчет", file=sys.stderr)
-    print("✅ Бот запущен и работает!", file=sys.stderr)
-    sys.stderr.flush()
-    
-    # Бесконечный цикл
     while True:
-        try:
-            schedule.run_pending()
-            time.sleep(1)
-        except Exception as e:
-            print(f"⚠️ Ошибка в основном цикле: {e}", file=sys.stderr)
-            time.sleep(60)
+        now = datetime.now(pytz.timezone(TIMEZONE))
+        hour = now.hour
+        minute = now.minute
+        
+        # Проверяем утреннее время
+        if hour == MORNING_HOUR and minute == MORNING_MINUTE:
+            if last_check.get('morning') != now.date():
+                print(f"⏰ Время утреннего отчета {hour:02d}:{minute:02d}", file=sys.stderr)
+                send_morning()
+                last_check['morning'] = now.date()
+                time.sleep(61)  # Ждем минуту
+        
+        # Проверяем дневное время
+        elif hour == DAY_HOUR and minute == DAY_MINUTE:
+            if last_check.get('day') != now.date():
+                print(f"📸 Время дневного отчета {hour:02d}:{minute:02d}", file=sys.stderr)
+                send_day()
+                last_check['day'] = now.date()
+                time.sleep(61)
+        
+        # Проверяем вечернее время
+        elif hour == EVENING_HOUR and minute == EVENING_MINUTE:
+            if last_check.get('evening') != now.date():
+                print(f"🌙 Время вечернего отчета {hour:02d}:{minute:02d}", file=sys.stderr)
+                send_evening()
+                last_check['evening'] = now.date()
+                time.sleep(61)
+        
+        # Сбрасываем проверки в 00:01
+        if hour == 0 and minute == 1:
+            last_check = {}
+            time.sleep(61)
+        
+        time.sleep(1)
 
 if __name__ == "__main__":
-    # Запускаем бота в отдельном потоке
-    bot_thread = threading.Thread(target=start_bot, daemon=True)
-    bot_thread.start()
+    # Запускаем бота
+    threading.Thread(target=bot_worker, daemon=True).start()
     
-    # Запускаем Flask сервер
-    print(f"🌐 Запускаю Flask сервер...", file=sys.stderr)
-    sys.stderr.flush()
+    # Запускаем Flask
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=port)
