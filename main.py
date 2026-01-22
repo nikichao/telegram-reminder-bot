@@ -18,7 +18,7 @@ TIMEZONE = "Europe/Moscow"
 
 # ⚠️ ДЛЯ ТЕСТА - через 1-2-3 минуты
 
-MORNING_HOUR = 09
+MORNING_HOUR = 9
 MORNING_MINUTE = 1  # через 1 минуту
 
 DAY_HOUR = 14
@@ -191,4 +191,5 @@ if __name__ == "__main__":
     sys.stderr.flush()
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+
 
