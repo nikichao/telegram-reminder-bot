@@ -115,7 +115,7 @@ def evening():
 def test():
     logger.info("Отправка тестового сообщения")
     current_time = get_current_time()
-    msg = f"""<b>🤖 БОТ ЗАПУЩЕН!</b>
+    msg = f"""<b>БОТ ЗАПУЩЕН!</b>
 
 ✅ <b>Работает на Railway!</b>
 
@@ -128,7 +128,7 @@ def test():
 
 def main():
     logger.info("="*50)
-    logger.info("🤖 ЗАПУСК TELEGRAM БОТА")
+    logger.info("ЗАПУСК TELEGRAM БОТА")
     logger.info("="*50)
     
     # Проверка настроек
@@ -168,3 +168,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
