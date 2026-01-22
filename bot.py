@@ -17,6 +17,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def main():
+    print("="*50)
+    print("🚀 БОТ НАЧИНАЕТ РАБОТУ")
+    print("="*50)
+    
+    # Принудительно выводим в консоль
+    import sys
+    sys.stdout.flush()
+
+
 # ============ НАСТРОЙКИ ============
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8225982359:AAFTkgY86NgkaeMcb8SUzee-n8kws-IYMZQ")
 CHAT_ID = os.environ.get("CHAT_ID", "-1003679701875")
@@ -168,4 +179,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
