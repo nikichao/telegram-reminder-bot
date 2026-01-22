@@ -1,25 +1,41 @@
 import requests
 import time
+import os
 from datetime import datetime
-import pytz  # Установи: pip install pytz
+import pytz
+from flask import Flask
+import threading
 
 # ============ НАСТРОЙКИ ============
-BOT_TOKEN = "8225982359:AAFTkgY86NgkaeMcb8SUzee-n8kws-IYMZQ"
-CHAT_ID = "-1003679701875"
+# Для Railway лучше использовать переменные окружения
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8225982359:AAFTkgY86NgkaeMcb8SUzee-n8kws-IYMZQ")
+CHAT_ID = os.environ.get("CHAT_ID", "-1003679701875")
+TIMEZONE = "Europe/Moscow"
 
-# ⚠️ УКАЖИ ЧАСОВОЙ ПОЯС ЗДЕСЬ ⚠️
-TIMEZONE = "Europe/Moscow"  # Для Москвы
-
-# ⚠️ ИЗМЕНИ ВРЕМЯ ЗДЕСЬ (можно указать минуты) ⚠️
-MORNING_HOUR = 15      # Часы для утреннего напоминания
-MORNING_MINUTE = 0    # Минуты для утреннего напоминания
-
-DAY_HOUR = 15         # Часы для дневного напоминания  
-DAY_MINUTE = 2       # Минуты для дневного напоминания
-
-EVENING_HOUR = 15      # Часы для вечернего напоминания
-EVENING_MINUTE = 4    # Минуты для вечернего напоминания
+# ⚠️ ИЗМЕНИ ВРЕМЯ ЗДЕСЬ ⚠️
+MORNING_HOUR = 15
+MORNING_MINUTE = 0
+DAY_HOUR = 15
+DAY_MINUTE = 2
+EVENING_HOUR = 15
+EVENING_MINUTE = 4
 # ===================================
+
+# Flask приложение ДОЛЖНО быть создано ДО функций
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "🤖 Telegram Bot работает на Railway!"
+
+@app.route('/health')
+def health():
+    return "OK", 200
+
+@app.route('/test_bot')
+def test_bot():
+    test()
+    return "Тестовое сообщение отправлено"
 
 def get_current_time():
     """Получает текущее время с учетом часового пояса"""
@@ -35,13 +51,14 @@ def send_msg(text):
         "parse_mode": "HTML"
     }
     try:
-        r = requests.post(url, data=data)
+        r = requests.post(url, data=data, timeout=10)
         if r.status_code == 200:
             current_time = get_current_time()
             print(f"[{current_time.strftime('%H:%M:%S')}] ✅ Сообщение отправлено")
             return True
         else:
             print(f"[{get_current_time().strftime('%H:%M:%S')}] ❌ Ошибка: {r.status_code}")
+            print(f"Ответ сервера: {r.text}")
             return False
     except Exception as e:
         print(f"[{get_current_time().strftime('%H:%M:%S')}] ❌ Ошибка: {e}")
@@ -107,12 +124,12 @@ def test():
 🌍 <b>Часовой пояс:</b> {TIMEZONE}"""
     send_msg(msg)
 
-def main():
+def bot_main():
+    """Основная функция бота"""
     print("="*50)
     print("🤖 ЗАПУСК БОТА НАПОМИНАНИЙ")
     print("="*50)
     
-    # Проверка времени
     current_time = get_current_time()
     print(f"🕐 Текущее время: {current_time.strftime('%H:%M:%S %d.%m.%Y')}")
     print(f"🌍 Часовой пояс: {TIMEZONE}")
@@ -123,8 +140,8 @@ def main():
     print("="*50)
     
     # Проверка настроек
-    if "ВАШ_ТОКЕН" in BOT_TOKEN or "ВАШ_ID_ЧАТА" in CHAT_ID:
-        print("\n❌ ОШИБКА: Сначала настрой бота!")
+    if not BOT_TOKEN or not CHAT_ID:
+        print("\n❌ ОШИБКА: Не указан BOT_TOKEN или CHAT_ID!")
         return
     
     print("\n📤 Отправляю тестовое сообщение...")
@@ -132,11 +149,10 @@ def main():
     
     print("\n✅ Бот запущен!")
     print(f"⏰ Следующее напоминание в {MORNING_HOUR:02d}:{MORNING_MINUTE:02d}")
-    print("\n⛔ Для остановки: Ctrl+C")
+    print("\n⛔ Для остановки бота остановите сервер")
     print("="*50)
     
     # Главный цикл
-    last_hour = -1
     last_minute = -1
     while True:
         now = get_current_time()
@@ -147,7 +163,7 @@ def main():
         if hour == MORNING_HOUR and minute == MORNING_MINUTE:
             print(f"\n[{now.strftime('%H:%M:%S')}] 📤 Отправляю утреннее напоминание...")
             morning()
-            time.sleep(61)  # Ждем минуту, чтобы не отправить дважды
+            time.sleep(61)
         
         # Дневное
         elif hour == DAY_HOUR and minute == DAY_MINUTE:
@@ -163,54 +179,33 @@ def main():
         
         # Выводим статус каждую минуту
         if minute != last_minute:
-            print(f"[{now.strftime('%H:%M:%S')}] ⏳ Ожидание...")
+            print(f"[{now.strftime('%H:%M:%S')}] ⏳ Бот работает...")
             last_minute = minute
         
         time.sleep(1)
 
+def run_flask():
+    """Запускает Flask сервер"""
+    port = int(os.environ.get("PORT", 8080))
+    print(f"🌐 Flask сервер запущен на порту {port}")
+    app.run(host='0.0.0.0', port=port)
+
 if __name__ == "__main__":
+    print("🚀 Запуск Telegram бота...")
+    
+    # Проверяем и устанавливаем библиотеки если нужно
     try:
-        # Установи библиотеку если нет
-        try:
-            import pytz
-        except:
-            print("Установка библиотеки pytz...")
-            import subprocess
-            subprocess.check_call(["pip", "install", "pytz"])
-            import pytz
-        
-        main()
-    except KeyboardInterrupt:
-
-        print("\n\n⛔ Бот остановлен")
-
-
-
-# ============ ДЛЯ RAILWAY ============
-from flask import Flask
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "🤖 Telegram Bot работает на Railway!"
-
-@app.route('/health')
-def health():
-    return "OK", 200
-
-@app.route('/test')
-def test():
-    send_telegram_message("🔧 Тест из Railway!")
-    return "Тест отправлен"
-
-if __name__ == "__main__":
-    import threading
-    import os
+        import pytz
+    except ImportError:
+        print("📦 Установка библиотек...")
+        import subprocess
+        subprocess.check_call(["pip", "install", "pytz", "flask"])
+        import pytz
+        from flask import Flask
     
     # Запускаем бота в отдельном потоке
-    bot_thread = threading.Thread(target=main, daemon=True)
+    bot_thread = threading.Thread(target=bot_main, daemon=True)
     bot_thread.start()
     
-    # Запускаем Flask сервер
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    # Запускаем Flask сервер (основной поток)
+    run_flask()
