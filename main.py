@@ -17,17 +17,15 @@ CHAT_ID = os.environ.get("CHAT_ID", "-1003679701875")
 TIMEZONE = "Europe/Moscow"
 
 # ⚠️ ДЛЯ ТЕСТА - через 1-2-3 минуты
-current_hour = datetime.now().hour
-current_minute = datetime.now().minute
 
-MORNING_HOUR = current_hour
-MORNING_MINUTE = current_minute + 1  # через 1 минуту
+MORNING_HOUR = 09
+MORNING_MINUTE = 1  # через 1 минуту
 
-DAY_HOUR = current_hour
-DAY_MINUTE = current_minute + 2      # через 2 минуты
+DAY_HOUR = 14
+DAY_MINUTE = 1     # через 2 минуты
 
-EVENING_HOUR = current_hour
-EVENING_MINUTE = current_minute + 3  # через 3 минуты
+EVENING_HOUR = 19
+EVENING_MINUTE = 1  # через 3 минуты
 # ===================================
 
 # Принудительный вывод в логи
@@ -193,3 +191,4 @@ if __name__ == "__main__":
     sys.stderr.flush()
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+
