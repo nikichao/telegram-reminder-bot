@@ -22,13 +22,13 @@ TIMEZONE = "Europe/Moscow"
 
 # ⚠️ УСТАНОВИТЕ ВРЕМЯ НАПОМИНАНИЙ
 MORNING_HOUR = 10      
-MORNING_MINUTE = 44
+MORNING_MINUTE = 0
 
-DAY_HOUR = 10         
-DAY_MINUTE = 46
+DAY_HOUR = 14         
+DAY_MINUTE = 0
 
-EVENING_HOUR = 10     
-EVENING_MINUTE = 48
+EVENING_HOUR = 19     
+EVENING_MINUTE = 0
 # ===================================
 
 print("="*50, file=sys.stderr)
@@ -226,3 +226,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     logger.info(f"🚀 Запуск Flask на порту {port}")
     app.run(host='0.0.0.0', port=port, debug=False)
+
