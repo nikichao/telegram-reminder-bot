@@ -16,14 +16,14 @@ CHAT_ID = os.environ.get("CHAT_ID", "-1003679701875")
 TIMEZONE = "Europe/Moscow"
 
 # ⚠️ УСТАНОВИТЕ ВРЕМЯ НАПОМИНАНИЙ
-MORNING_HOUR = 10      # 9:01 утра
-MORNING_MINUTE = 30
+MORNING_HOUR = 10      
+MORNING_MINUTE = 36
 
-DAY_HOUR = 10         # 14:01 дня
-DAY_MINUTE = 31
+DAY_HOUR = 10         
+DAY_MINUTE = 37
 
-EVENING_HOUR = 10     # 19:01 вечера
-EVENING_MINUTE = 32
+EVENING_HOUR = 10     
+EVENING_MINUTE = 38
 # ===================================
 
 print("="*50, file=sys.stderr)
@@ -175,4 +175,5 @@ if __name__ == "__main__":
     # Запускаем Flask
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
