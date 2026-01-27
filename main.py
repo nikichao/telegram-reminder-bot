@@ -24,16 +24,13 @@ TIMEZONE = "Europe/Moscow"
 MORNING_HOUR = 10      
 MORNING_MINUTE = 0
 
-DAY_HOUR = 14         
-DAY_MINUTE = 0
-
 EVENING_HOUR = 19     
 EVENING_MINUTE = 0
 # ===================================
 
 print("="*50, file=sys.stderr)
 print("🚀 TELEGRAM BOT STARTING", file=sys.stderr)
-print(f"⏰ Время напоминаний: {MORNING_HOUR:02d}:{MORNING_MINUTE:02d}, {DAY_HOUR:02d}:{DAY_MINUTE:02d}, {EVENING_HOUR:02d}:{EVENING_MINUTE:02d}", file=sys.stderr)
+print(f"⏰ Время напоминаний: {MORNING_HOUR:02d}:{MORNING_MINUTE:02d}, {EVENING_HOUR:02d}:{EVENING_MINUTE:02d}", file=sys.stderr)
 print(f"🌍 Часовой пояс: {TIMEZONE}", file=sys.stderr)
 print("="*50, file=sys.stderr)
 sys.stderr.flush()
@@ -52,7 +49,6 @@ def home():
         <p>📅 <b>Расписание:</b></p>
         <ul>
             <li>{MORNING_HOUR:02d}:{MORNING_MINUTE:02d} - Утренний отчет</li>
-            <li>{DAY_HOUR:02d}:{DAY_MINUTE:02d} - Фото/видео отчет</li>
             <li>{EVENING_HOUR:02d}:{EVENING_MINUTE:02d} - Вечерний отчет</li>
         </ul>
         <p><a href="/send_test">📤 Тест</a> | <a href="/health">❤️ Здоровье</a> | <a href="/status">📊 Статус</a></p>
@@ -72,7 +68,6 @@ def status():
         "timezone": TIMEZONE,
         "schedule": {
             "morning": f"{MORNING_HOUR:02d}:{MORNING_MINUTE:02d}",
-            "day": f"{DAY_HOUR:02d}:{DAY_MINUTE:02d}",
             "evening": f"{EVENING_HOUR:02d}:{EVENING_MINUTE:02d}"
         }
     }
@@ -124,21 +119,6 @@ def send_morning():
     
     return send_telegram(msg)
 
-def send_day():
-    msg = f"""<b>📸 ДНЕВНОЕ НАПОМИНАНИЕ</b>
-    
-<b>🎥 ФОТО/ВИДЕОФИКСАЦИЯ РАБОТ</b>
-
-Отправляйте фото/видео с подписями что сделали
-
-<b>Пример:</b>
-«Откопана траншея 5 м»
-«Установлено 5 фитингов»
-
-⚠️ <b>Не забывайте фиксировать работу</b>"""
-    
-    return send_telegram(msg)
-
 def send_evening():
     msg = f"""<b>🌙 ВЕЧЕРНЕЕ НАПОМИНАНИЕ</b>
     
@@ -150,8 +130,10 @@ def send_evening():
 1. Прокладка трубы (не хватило, заказали на [дд/мм] число)
 2. Установка фитингов (не хватило, заказали на [дд/мм] число)
 
-Или: <b>«Все работы выполнены»</b>"""
-    
+Или: <b>«Все работы выполнены»</b>
+
+⚠️ <b>За неоповещение - штраф</b>"""
+
     return send_telegram(msg)
 
 def bot_worker():
@@ -160,7 +142,7 @@ def bot_worker():
     logger.info("🤖 Бот запущен")
     
     # Тестовое сообщение
-    send_telegram(f"🤖 Бот запущен!\n⏰ Часовой пояс: {TIMEZONE}\n📅 Расписание:\n• {MORNING_HOUR:02d}:{MORNING_MINUTE:02d} - Утренний\n• {DAY_HOUR:02d}:{DAY_MINUTE:02d} - Дневной\n• {EVENING_HOUR:02d}:{EVENING_MINUTE:02d} - Вечерний")
+    send_telegram(f"🤖 Бот запущен!\n⏰ Часовой пояс: {TIMEZONE}\n📅 Расписание:\n• {MORNING_HOUR:02d}:{MORNING_MINUTE:02d} - Утренний\n• {EVENING_HOUR:02d}:{EVENING_MINUTE:02d} - Вечерний")
     
     last_check = {}
     
@@ -184,16 +166,6 @@ def bot_worker():
                         last_check[morning_key] = True
                         logger.info("✅ Утренний отчет отправлен")
                     time.sleep(60)  # Ждем минуту чтобы не отправить повторно
-            
-            # Проверяем дневное время
-            day_key = f"day_{today}"
-            if hour == DAY_HOUR and minute == DAY_MINUTE:
-                if last_check.get(day_key) != True:
-                    logger.info(f"📸 Отправляю дневной отчет {hour:02d}:{minute:02d}")
-                    if send_day():
-                        last_check[day_key] = True
-                        logger.info("✅ Дневной отчет отправлен")
-                    time.sleep(60)
             
             # Проверяем вечернее время
             evening_key = f"evening_{today}"
@@ -226,4 +198,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     logger.info(f"🚀 Запуск Flask на порту {port}")
     app.run(host='0.0.0.0', port=port, debug=False)
-
